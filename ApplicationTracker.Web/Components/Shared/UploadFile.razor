@@ -1,0 +1,144 @@
+﻿
+@inject ILogger<UploadFile> Logger
+@inject IJSModuleLoader jSModuleLoader
+
+@attribute [Authorize]
+
+<section aria-labelledby="@legendId">
+	<fieldset>
+		<legend id="@legendId">@Title</legend>
+		<div class="mb-2">
+			<label for="@inputId">@Title</label>
+			<InputFile id="@inputId"
+					   accept="@string.Join(',', PermittedExtensions)"
+					   OnChange="LoadFiles"
+					   @attributes="GetInputAttributes()" />
+		</div>
+		@if (isLoading)
+		{
+			<div role="status" aria-live="polite" id="@statusId">
+				<progress max="100"></progress>
+				<span class="sr-only">Uploading...</span>
+			</div>
+		}
+		else if (!string.IsNullOrEmpty(uploadedFileName))
+		{
+			<section aria-labelledby="@successHeadingId">
+				<h4 id="@successHeadingId">Uploaded file</h4>
+				<p id="@successId">@uploadedFileName</p>
+				<button type="button"
+						class="btn btn-link"
+						@onclick="RemoveFile"
+						aria-label="Remove uploaded file @uploadedFileName">
+					Remove
+				</button>
+			</section>
+		}
+		else if (!string.IsNullOrEmpty(errorMessage))
+		{
+			<p role="alert" aria-live="assertive" id="@errorId" class="text-danger">@errorMessage</p>
+		}
+	</fieldset>
+</section>
+
+
+@code {
+	private long maxFileSize = 1024 * 1024 * 5; //5mb
+	private bool isLoading;
+	private string? errorMessage;
+	public string[] PermittedExtensions { get; set; } = new[] { ".pdf" };
+	[EditorRequired][Parameter] public string Title { get; set; }
+	[Parameter] public EventCallback<(string Name, string ContentType, byte[] Data)> OnFileUploaded { get; set; }
+	[Parameter] public EventCallback OnFileRemoved { get; set; }
+	[Parameter] public PdfFile? Dto { get; set; }
+
+	private string inputId = $"upload_{Guid.NewGuid():N}";
+	private string? uploadedFileName;
+	// Accessibility IDs
+	private string errorId => $"{inputId}_error";
+	private string statusId => $"{inputId}_status";
+	private string successId => $"{inputId}_success";
+	private string legendId => $"{inputId}_legend";
+	private string successHeadingId => $"{inputId}_success_heading";
+
+	protected override async void OnInitialized()
+	{
+		if(Dto != null)
+		{
+			uploadedFileName = Dto.FileName;
+		}
+	}
+	protected override async void OnAfterRender(bool firstRender)
+	{
+		await jSModuleLoader.RegisterAsync(ModuleType.FileInputInterop);
+		base.OnAfterRender(firstRender);
+	}
+	private IDictionary<string, object> GetInputAttributes()
+	{
+		var attributes = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+		{
+			["aria-labelledby"] = legendId
+		};
+
+		if (!string.IsNullOrEmpty(errorMessage))
+		{
+			attributes["aria-describedby"] = errorId;
+			attributes["aria-invalid"] = "true";
+		}
+		else if (!string.IsNullOrEmpty(uploadedFileName))
+		{
+			attributes["aria-describedby"] = successId;
+		}
+
+		attributes["aria-label"] = Title ?? "File upload";
+
+		return attributes;
+	}
+
+	private async Task LoadFiles(InputFileChangeEventArgs e)
+	{
+		isLoading = true;
+		errorMessage = null;
+
+		var ext = Path.GetExtension(e.File.Name).ToLowerInvariant();
+
+		if (string.IsNullOrEmpty(ext) || !PermittedExtensions.Contains(ext))
+		{
+			errorMessage = "Only PDF files are allowed.";
+			isLoading = false;
+			StateHasChanged();
+			return;
+		}
+		try
+		{
+			//to be used later
+			var trustedFileName = Path.GetRandomFileName();
+			await using var ms = new MemoryStream();
+			await e.File.OpenReadStream(maxFileSize).CopyToAsync(ms);
+			await OnFileUploaded.InvokeAsync((e.File.Name, e.File.ContentType, ms.ToArray()));
+			uploadedFileName = e.File.Name;
+			Logger.LogInformation($"Uploaded {e.File.Name} to Memory.");
+		}
+		catch (Exception ex)
+		{
+			Logger.LogError("File: {Filename} Error: {Error}",
+				e.File.Name, ex.Message);
+			errorMessage = "Failed to read file.";
+		}
+		isLoading = false;
+		StateHasChanged();
+	}
+
+	private async Task RemoveFile()
+	{
+		uploadedFileName = null;
+
+		
+			await jSModuleLoader.InvokeAsync<object>(ModuleType.FileInputInterop, "clearFileInput", inputId);
+			await OnFileRemoved.InvokeAsync();
+			StateHasChanged();
+
+		
+
+	}
+}

@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="ApplicationTracker.Api/ApplicationTracker.Api.csproj" Id="f6007c16-ff31-41a1-b17b-3808fbc21473" />
+  <Project Path="ApplicationTracker.Web/ApplicationTracker.Web.csproj" />
+  <Project Path="ApplicationTrackerWebTests/ApplicationTrackerBlazorTests/ApplicationTrackerBlazorTests.csproj" Id="3a127fc5-855f-42b3-b44d-4f2c9a33502c" />
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
+</Solution>

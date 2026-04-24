@@ -1,0 +1,28 @@
+﻿
+/*Disclaimer, I don't think this is optimal, seems wonky in the browser.*/
+.resizable {
+    width: 60vw;
+    height: 80vh; 
+    border: 1px solid #ccc;
+    overflow: auto; 
+    resize: both; 
+    min-width: 30vw;
+    min-height: 40vh;
+    max-width: 80vw;
+    max-height: 80vh;
+    justify-self: center;
+    display:grid;
+
+}
+
+    .resizable iframe {
+
+        width: inherit;
+        height:inherit;
+        min-width: inherit;
+        max-width:inherit;
+        max-height: inherit;
+        min-height:inherit;
+        border: none;
+
+    }

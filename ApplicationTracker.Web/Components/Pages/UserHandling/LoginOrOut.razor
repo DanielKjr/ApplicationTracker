@@ -1,0 +1,57 @@
+﻿@inject NavigationManager NavigationManager
+@inject IAuthenticationService AuthenticationService
+@inject TokenFetcherService TokenFetcherService
+@inject IJSModuleLoader JSModuleLoader
+
+<div class="login-or-out-container">
+	<AuthorizeView>
+		<Authorizing>
+			<div class="user-actions">
+				<div class="name">Authorizing...</div>
+			</div>
+		</Authorizing>
+		<Authorized>
+			<div class="user-actions">
+				<div class="name" @onclick="CopyTokenToClipboard" style="cursor:pointer;" title="Copy token">@userName</div>
+				<button class="b1" @onclick="@(() => NavigationManager.NavigateTo("/Account/LogOut", forceLoad: true))">Logout</button>
+			</div>
+		</Authorized>
+		<NotAuthorized>
+			<div class="user-actions">
+				<div class="name">@userName</div>
+				<button class="b1" @onclick="@(() => NavigationManager.NavigateTo("/Account/Login", forceLoad: true))">Login</button>
+			</div>
+		</NotAuthorized>
+	</AuthorizeView>
+
+</div>
+
+
+@code {
+	// Prefer cascaded AuthenticationService when present so other components can consume the same instance
+	[CascadingParameter] public IAuthenticationService? CascadedAuthenticationService { get; set; }
+	private string userName = "Guest";
+
+	protected override async Task OnInitializedAsync()
+	{
+
+		var auth = CascadedAuthenticationService ?? AuthenticationService;
+		userName = await auth.GetUserNameAsync();
+	}
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		await JSModuleLoader.RegisterAsync(ModuleType.ClipBoardModule);
+		
+	}
+	private async Task CopyTokenToClipboard()
+	{
+		var token = await TokenFetcherService.GetToken();
+		//This was paired with Blazored Toast to show success or fail but with the abandonment and 
+		//Trouble getting the CSS to work, it is removed.
+		bool success = await JSModuleLoader.InvokeAsync<bool>(ModuleType.ClipBoardModule, "copyTextToClipboard", token);
+			
+		
+		StateHasChanged();
+		await Task.Delay(3000);
+	}
+}

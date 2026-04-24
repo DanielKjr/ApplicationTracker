@@ -399,3 +399,9 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+ApplicationTracker.Api/appsettings.Development.json
+ApplicationTracker.Web/appsettings.Development.json
+docker/secrets/api.json
+docker/secrets/dbinfo.json
+ApplicationTracker.Web/Properties/serviceDependencies.local.json
+ApplicationTracker.Web/wwwroot/appsettings.json

@@ -1,0 +1,207 @@
+﻿@page "/application/new"
+@page "/application/edit/{ApplicationId:guid}"
+
+@using Microsoft.AspNetCore.Components.Forms;
+
+@inject ApplicationTrackerApiClient ApplicationTrackerApiClient
+@inject ILogger<AddOrEditApplication> Logger
+@inject NavigationManager NavigationManager
+
+
+
+<EditForm Model="appDto" OnValidSubmit="Submit" OnInvalidSubmit="OnInvalidSubmit">
+	<DataAnnotationsValidator />
+	@* <ValidationSummary /> *@
+	<div class="newApplicationContainer">
+		<div class="form-group">
+			<label for="company">Company name</label>
+			<InputText id="company"
+					   class="form-control"
+					   @bind-Value="appDto.Company"
+					   autocomplete="off"
+					   required
+					   aria-required="true"
+					   aria-describedby="company-validation" />
+			<ValidationMessage For="@(() => appDto.Company)" />
+		</div>
+
+		<div class="form-group">
+			<label for="jobTitle">Position</label>
+			<InputText id="jobTitle"
+					   class="form-control"
+					   @bind-Value="appDto.JobTitle"
+					   autocomplete="off"
+					   required
+					   aria-required="true"
+					   aria-describedby="jobTitle-validation" />
+			<ValidationMessage For="@(() => appDto.JobTitle)" />
+		</div>
+
+		<div class="form-group">
+			<label for="dateApplied">Date applied</label>
+			<InputDate id="dateApplied"
+					   class="form-control"
+					   @bind-Value="appDto.Date"
+					   aria-describedby="dateApplied-validation" />
+			<ValidationMessage For="@(() => appDto.Date)" />
+		</div>
+
+		<div class="form-group">
+			<label for="deadline">Deadline for application</label>
+			<InputDate id="deadline"
+					   class="form-control"
+					   @bind-Value="appDto.Deadline"
+					   aria-describedby="deadline-validation" />
+			<ValidationMessage For="@(() => appDto.Deadline)" />
+		</div>
+
+		<fieldset>
+			<legend>Attachments</legend>
+			<div class="form-group">
+				<label for="resume">Resume</label>
+				<UploadFile Dto="existingDto?.ResumePdf" Title="Upload Resume" OnFileUploaded="OnResumeUpload" OnFileRemoved="DeleteResume" />
+				<ValidationMessage For="@(() => appDto.ResumePdf)" />
+			</div>
+
+			<div class="form-group">
+				<label for="applicationPdf">Application</label>
+				<UploadFile Dto="existingDto?.ApplicationPdf" Title="Upload Application" OnFileUploaded="OnApplicationUpload" OnFileRemoved="DeleteApplication" />
+				<ValidationMessage For="@(() => appDto.ApplicationPdf)" />
+			</div>
+		</fieldset>
+
+
+		<div class="form-actions">
+			<button type="submit" class="btn btn-primary">Save application</button>
+			<button type="button" class="btn btn-secondary" @onclick="OnCancel">Cancel</button>
+		</div>
+	</div>
+</EditForm>
+
+
+@code {
+	public NewJobApplicationDto appDto = new NewJobApplicationDto();
+	private JobApplicationDisplayDto existingDto;
+	private Guid userId;
+
+	[Parameter]
+	public Guid? ApplicationId { get; set; }
+
+	[CascadingParameter] public IAuthenticationService? CascadedAuthenticationService { get; set; }
+
+
+
+	//TODO properly display the existing file if it exists
+	protected override async void OnInitialized()
+	{
+		if (ApplicationId is not null)
+		{
+			userId = (Guid)await CascadedAuthenticationService!.GetUserIdAsync();
+			var app = await ApplicationTrackerApiClient.ApplicationAsync((Guid)ApplicationId);
+			if (app != null)
+			{
+				existingDto = app;
+				appDto.Date = existingDto.AppliedDate;
+				
+				appDto.ApplicationPdf = new PdfFileDto()
+				{
+					FileName = existingDto.ApplicationPdf.FileName,
+					Content = existingDto.ApplicationPdf.Content,
+					ContentType = existingDto.ApplicationPdf.ContentType
+				};
+
+				appDto.ResumePdf = new PdfFileDto()
+				{
+					FileName = existingDto.ResumePdf?.FileName ?? null,
+					Content = existingDto.ResumePdf?.Content ?? null,
+					ContentType = existingDto.ResumePdf?.ContentType ?? null
+				};
+
+				appDto.JobTitle = existingDto.JobTitle;
+				appDto.Company = existingDto.Company;
+
+			}
+			StateHasChanged();
+		}
+		else
+		{
+			appDto.Date = DateTime.Now;
+			appDto.Deadline = DateTime.Now.AddMonths(1);
+		}
+
+		base.OnInitialized();
+	}
+
+	public void DeletePdf(PdfFileDto pdfFileDto)
+	{
+
+	}
+	private void OnResumeUpload((string Name, string ContentType, byte[] Data) file)
+	{
+		appDto.ResumePdf = new PdfFileDto()
+		{
+			FileName = file.Name,
+			ContentType = file.ContentType,
+			Content = file.Data
+		};
+
+	}
+
+	private void OnApplicationUpload((string Name, string ContentType, byte[] Data) file)
+	{
+		appDto.ApplicationPdf = new PdfFileDto()
+		{
+			FileName = file.Name,
+			ContentType = file.ContentType,
+			Content = file.Data
+		};
+	}
+
+	private Task DeleteResume()
+	{
+		appDto.ResumePdf = null;
+		return Task.CompletedTask;
+	}
+
+	private Task DeleteApplication()
+	{
+		appDto.ApplicationPdf = null;
+		return Task.CompletedTask;
+	}
+
+	private async Task Submit()
+	{
+		try
+		{
+			if (existingDto != null)
+			{
+				await ApplicationTrackerApiClient.UpdateAsync(existingDto);
+				NavigationManager.NavigateTo("/");
+			}
+			else
+			{
+				await ApplicationTrackerApiClient.NewAsync(appDto);
+				NavigationManager.NavigateTo("/");
+			}
+		}
+		catch (Exception e)
+		{
+
+			Logger.LogError("Error submitting new application: {Error}", e.Message);
+		
+		}
+	}
+
+	private async Task OnCancel()
+	{
+		NavigationManager.NavigateTo("/applications");
+	}
+
+	private void OnInvalidSubmit(EditContext context)
+	{
+		// Log validation errors; consider focusing the first invalid field here.
+		Logger.LogWarning("Invalid submit: {@ValidationMessages}", context);
+	}
+
+
+}

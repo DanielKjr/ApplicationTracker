@@ -1,0 +1,31 @@
+services:
+  applicationtracker.api:
+    container_name:
+       api
+    build:
+      context: .
+      dockerfile: ApplicationTracker.Api\Dockerfile
+    ports:
+       - "8160:8080"
+    command: dotnet watch --project /src/ApplicationTracker.Api run
+   
+
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      # - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=password
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+    volumes:
+      - ~/.aspnet/https:/https:ro
+      - ./ApplicationTracker.Api:/src/ApplicationTracker.Api
+    secrets:
+     - dbinfo
+     - apiinfo
+
+
+
+secrets:
+   dbinfo:
+      file: ./docker/secrets/dbinfo.json
+   apiinfo:
+      file: ./docker/secrets/api.json

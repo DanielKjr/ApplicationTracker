@@ -1,0 +1,72 @@
+@page "/profile"
+@using ApplicationTracker.ApiClient
+@using Microsoft.Graph
+@inject Microsoft.Graph.GraphServiceClient GraphServiceClient
+@inject NavigationManager Navigation
+@inject ILogger<UserProfile> Logger
+@inject Microsoft.Identity.Web.ITokenAcquisition TokenAcquisition
+@inject ApplicationTrackerApiClient ApplicationTrackerApiClient
+
+@attribute [Authorize]
+
+<h3>User Profile</h3>
+
+@if (user == null)
+{
+	<p><em>@siteMsg</em></p>
+}
+else
+{
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Property</th>
+				<th>Value</th>
+			</tr>
+		</thead>
+		<tr>
+			<td> DisplayName </td>
+			<td> @user.DisplayName </td>
+		</tr>
+		<tr>
+			<td> UserPrincipalName </td>
+			<td> @user.UserPrincipalName </td>
+		</tr>
+		<tr>
+			<td> ID </td>
+			<td> @user.Id</td>
+		</tr>
+	</table>
+	<button @onclick="@(() => Communicate())">Call api</button>
+}
+
+
+
+@code {
+	//Component is used more or less just to confirm authentication and user informations
+	User? user = null;
+	string siteMsg = "Loading...";
+	protected override async Task OnInitializedAsync()
+	{
+
+		try
+		{
+			user = await GraphServiceClient.Me.Request().GetAsync();
+		}
+		catch (Exception ex)
+		{
+			siteMsg = "Error loading user... redirecting to login...";
+			Logger.LogError(ex, "Error thrown when accessing UserProfile.");
+			StateHasChanged();
+			await Task.Delay(2000);
+			Navigation.NavigateTo("/Account/Login", forceLoad: true);
+		}
+	}
+
+	private async Task Communicate()
+	{
+		var s = await ApplicationTrackerApiClient.TempAsync();
+	}
+
+
+}

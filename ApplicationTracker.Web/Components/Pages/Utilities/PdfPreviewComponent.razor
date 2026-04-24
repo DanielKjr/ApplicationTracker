@@ -1,0 +1,79 @@
+﻿@using Microsoft.JSInterop
+@using System.Threading.Tasks
+@using System.Text
+@inject IJSModuleLoader JSModuleLoader
+
+
+@if (loadError)
+{
+	<div class="pdf-error">@errorMessage</div>
+}
+else
+{
+	<div class="resizable">
+		<iframe @ref="iframeRef" id="@FrameId"></iframe>
+	</div>
+}
+@code {
+	private ElementReference iframeRef;
+	private string FrameId { get; } = $"pdf_{Guid.NewGuid():N}";
+	[EditorRequired][Parameter] public PdfFile PdfFile { get; set; }
+	private bool loadError;
+
+	private string errorMessage = "Unable to display pdf.";
+	protected override Task OnParametersSetAsync()
+	{
+		if (PdfFile?.Content == null)
+		{
+			loadError = true;
+			return Task.CompletedTask;
+		}
+
+		loadError = !IsValidPdf(PdfFile.Content);
+		return Task.CompletedTask;
+	}
+
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		await JSModuleLoader.RegisterAsync(ModuleType.PdfModule, ModuleType.BrowserInterop);
+		await base.OnAfterRenderAsync(firstRender);
+
+		if (!firstRender)
+			return;
+
+		
+
+		if (PdfFile?.Content == null || !IsValidPdf(PdfFile.Content))
+		{
+			loadError = true;
+			return;
+		}
+
+
+		var browser = await JSModuleLoader.InvokeAsync<string>(ModuleType.BrowserInterop, "getBrowserInfo");
+
+		if (string.Equals(browser, "firefox", StringComparison.OrdinalIgnoreCase))
+		{
+			errorMessage = $"Unable to display pdf in the active browser. ({browser})";
+			loadError = true;
+			StateHasChanged();
+			return;
+		}
+
+	
+		await JSModuleLoader.InvokeAsync<object>(ModuleType.PdfModule, "setIframeSrc", iframeRef, Convert.ToBase64String(PdfFile.Content));
+	}
+
+	private bool IsValidPdf(byte[] data)
+	{
+		if (data == null || data.Length < 5)
+			return false;
+
+		return Encoding.ASCII.GetString(data.AsSpan(0, 5)) == "%PDF-";
+	}
+
+
+
+
+}

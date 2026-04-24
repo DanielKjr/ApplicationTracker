@@ -1,0 +1,91 @@
+﻿@inject ILogger<ApplicationsOverview> Logger
+@inject ApplicationTrackerApiClient ApplicationTrackerApiClient
+@inject IAuthenticationService AuthenticationService
+@page "/applications"
+
+@using System.Reflection
+@using System.Linq.Expressions
+
+@attribute [Authorize]
+
+
+@if (JobApplications != null && JobApplications.Any())
+{
+	<PdfPreviewComponent  PdfFile="JobApplications.First().ApplicationPdf"></PdfPreviewComponent> 
+	<QuickGrid Items="@JobApplications">
+		@for (int i = 0; i < Props.Length; i++)
+		{
+			var prop = Props[i];
+			var getter = Getters[i];
+
+			<PropertyColumn Property="@(app => getter(app))" Title="@prop.Name"></PropertyColumn>
+		}
+	<TemplateColumn Title="AppId">
+    @context.JobApplicationId
+    <div>
+        <a class="nav-link"
+           href="@($"/application/edit/{context.JobApplicationId}")">
+            Edit
+        </a>
+    </div>
+</TemplateColumn>
+
+	
+	</QuickGrid>
+
+}
+
+
+@code {
+
+
+	public IQueryable<JobApplicationDisplayDto>? JobApplications { get; set; }
+
+	protected override async Task OnInitializedAsync()
+	{
+		
+		ICollection<JobApplicationDisplayDto> apps = await ApplicationTrackerApiClient.UserApplicationsAsync();
+
+		if (apps != null)
+		{
+			JobApplications = new List<JobApplicationDisplayDto>(apps).AsQueryable();
+
+			GetProps(apps.FirstOrDefault()!);
+		}
+	}
+
+
+	private PropertyInfo[] Props = Array.Empty<PropertyInfo>();
+	private Func<JobApplicationDisplayDto, object?>[] Getters = Array.Empty<Func<JobApplicationDisplayDto, object?>>();
+	public void GetProps(JobApplicationDisplayDto sample)
+	{
+		Props = sample.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+			.Where(p => p.PropertyType != typeof(Guid))
+			.ToArray();
+
+		Getters = Props.Select(p => GetGetter<JobApplicationDisplayDto>(p)).ToArray();
+	}
+
+
+	/// <summary>
+	/// Compiled delegate to avoid excessive Reflection with GetValue.
+	/// Small upfront cost to compile but repeated calls are more efficient.
+	/// </summary>
+	/// <param name="prop"></param>
+	/// <returns></returns>
+	private Func<T, object?> GetGetter<T>(PropertyInfo prop)
+	{
+		if (prop.PropertyType == typeof(Guid))
+			return _ => null;
+
+		//Symbolic param, it's essentially the same as writing x =>
+		ParameterExpression param = Expression.Parameter(typeof(T), "x");
+		//Represents the x.SomeProperty
+		MemberExpression propertyAccess = Expression.Property(param, prop);
+		//Value types need boxing to match object
+		UnaryExpression convert = Expression.Convert(propertyAccess, typeof(object)); 
+		//Turn the expression tree into a lambda of desired type and compile it
+		return Expression.Lambda<Func<T, object?>>(convert, param).Compile();
+		
+	}
+}
