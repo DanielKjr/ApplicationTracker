@@ -18,12 +18,12 @@ namespace ApplicationTrackerBlazorTests.Pages.UserHandling
 {
 	[TestFixture]
 	[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-	class LogInOrOutTests : BunitContext
+	class AuthActionsTests : BunitContext
 	{
 
 
 		[Test]
-		public void UserActionUnAuthorizedRendersLogIn()
+		public void AuthActions_Unauthorized_Displays_Login()
 		{
 
 			Services.RegisterApplicationTrackerApi();
@@ -33,23 +33,57 @@ namespace ApplicationTrackerBlazorTests.Pages.UserHandling
 
 
 			var cut = Render<CascadingAuthenticationState>(parameters => parameters
-				.AddChildContent<LoginOrOut>()
+				.AddChildContent<AuthActions>()
 			);
 
 			cut.Find("div.name").MarkupMatches(@"<div class=""name"">Guest</div>");
 			var loginButton = cut.Find("button.b1");
 			Assert.AreEqual("Login", loginButton.TextContent);
 		}
+		[Test]
+		public void AuthActions_Authorized_Displays_Logout()
+		{
+			this.SetAuthorized();
+			Services.RegisterApplicationTrackerApi();
+			Services.AddTransient<IJSModuleLoader, JSModuleLoader>();
+			JSInterop.SetupModule("./js/clipboardModule.js");
+
+			var cut = Render<CascadingAuthenticationState>(parameters => parameters
+				.AddChildContent<AuthActions>()
+			);
+
+
+			var username = cut.Find("div.name");
+			var logoutButton = cut.Find("button.b1");
+			Assert.AreEqual("Logout", logoutButton.TextContent);
+			Assert.AreEqual("NameOfUser", username.TextContent);
+		}
 
 		[Test]
-		public void UserActionLogoutButtonNavigatesToMicrosoft()
+		public void AuthActions_Displays_Authorizing()
+		{
+			Services.RegisterApplicationTrackerApi();
+			Services.AddTransient<IJSModuleLoader, JSModuleLoader>();
+			JSInterop.SetupModule("./js/clipboardModule.js");
+			AddAuthorization().SetAuthorizing();
+			var cut = Render<CascadingAuthenticationState>(parameters => parameters
+				.AddChildContent<AuthActions>()
+			);
+			var userAction = cut.Find("div.name");
+
+			Assert.AreEqual("Authorizing...", userAction.TextContent);
+
+		}
+
+		[Test]
+		public void AuthActions_Login_Redirects_To_Microsoft()
 		{
 			this.SetAuthorized();
 			Services.RegisterApplicationTrackerApi();
 			Services.AddTransient<IJSModuleLoader, JSModuleLoader>();
 			JSInterop.SetupModule("./js/clipboardModule.js");
 			var cut = Render<CascadingAuthenticationState>(parameters => parameters
-				.AddChildContent<LoginOrOut>()
+				.AddChildContent<AuthActions>()
 			);
 
 			NavigationManager? navigationManager = Services.GetRequiredService<NavigationManager>() as NavigationManager;
@@ -61,35 +95,18 @@ namespace ApplicationTrackerBlazorTests.Pages.UserHandling
 
 		}
 
-		[Test]
-		public void UserActionAuthorizedRendersLogOut()
-		{
-			this.SetAuthorized();
-			Services.RegisterApplicationTrackerApi();
-			Services.AddTransient<IJSModuleLoader, JSModuleLoader>();
-			JSInterop.SetupModule("./js/clipboardModule.js");
-
-			var cut = Render<CascadingAuthenticationState>(parameters => parameters
-				.AddChildContent<LoginOrOut>()
-			);
-
-
-			var username = cut.Find("div.name");
-			var logoutButton = cut.Find("button.b1");
-			Assert.AreEqual("Logout", logoutButton.TextContent);
-			Assert.AreEqual("NameOfUser", username.TextContent);
-		}
+		
 
 
 		[Test]
-		public void UserActionLoginButtonNavigatesToMicrosoft()
+		public void AuthActions_Logout_Redirects_To_Microsoft()
 		{
 			Services.RegisterApplicationTrackerApi();
 			var auth = AddAuthorization();
 			Services.AddTransient<IJSModuleLoader, JSModuleLoader>();
 			JSInterop.SetupModule("./js/clipboardModule.js");
 			IRenderedComponent<CascadingAuthenticationState>? cut = Render<CascadingAuthenticationState>(parameters => parameters
-				.AddChildContent<LoginOrOut>()
+				.AddChildContent<AuthActions>()
 			);
 
 			NavigationManager? navigationManager = Services.GetRequiredService<NavigationManager>() as NavigationManager;
@@ -102,24 +119,9 @@ namespace ApplicationTrackerBlazorTests.Pages.UserHandling
 
 		}
 
-		[Test]
-		public void UserActionsDisplayAuthorizing()
-		{
-			Services.RegisterApplicationTrackerApi();
-			Services.AddTransient<IJSModuleLoader, JSModuleLoader>();
-			JSInterop.SetupModule("./js/clipboardModule.js");
-			AddAuthorization().SetAuthorizing();
-			var cut = Render<CascadingAuthenticationState>(parameters => parameters
-				.AddChildContent<LoginOrOut>()
-			);
-			var userAction = cut.Find("div.name");
-
-			Assert.AreEqual("Authorizing...", userAction.TextContent);
-
-		}
 
 		[Test]
-		public void ClickOnUserNameCopiesID()
+		public void AuthActions_UserName_Click_Copies_UserID()
 		{
 			//TODO need to simplify this. This is a niche case where i need to test
 			//the fetched token and have to verify it, but its not pretty
@@ -148,7 +150,7 @@ namespace ApplicationTrackerBlazorTests.Pages.UserHandling
 				.SetResult(true);
 
 			var cut = Render<CascadingAuthenticationState>(parameters => parameters
-				.AddChildContent<LoginOrOut>()
+				.AddChildContent<AuthActions>()
 			);
 
 			cut.Find("div.name").Click();

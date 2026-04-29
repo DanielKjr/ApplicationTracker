@@ -3,6 +3,7 @@ html, body {
     height: 100%;
     margin: 0;
 }
+
 a, .btn-link {
     color: #006bb7;
 }
@@ -13,6 +14,7 @@ button {
     line-height: inherit;
     border-radius: 0;
 }
+
 .btn-primary {
     color: #fff;
     background-color: #1b6ec2;
@@ -26,6 +28,7 @@ button {
 .content {
     padding-top: 1.1rem;
 }
+
 *, *::before, *::after {
     box-sizing: border-box;
 }
@@ -38,6 +41,7 @@ button {
 
 main {
     flex: 1;
+    background-color: #dedede;
 }
 
 .top-row {
@@ -97,4 +101,3 @@ a {
         color: white;
         text-decoration: none;
     }
-

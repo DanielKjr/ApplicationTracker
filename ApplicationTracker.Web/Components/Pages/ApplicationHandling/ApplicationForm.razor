@@ -4,7 +4,7 @@
 @using Microsoft.AspNetCore.Components.Forms;
 
 @inject ApplicationTrackerApiClient ApplicationTrackerApiClient
-@inject ILogger<AddOrEditApplication> Logger
+@inject ILogger<ApplicationForm> Logger
 @inject NavigationManager NavigationManager
 
 
@@ -12,7 +12,7 @@
 <EditForm Model="appDto" OnValidSubmit="Submit" OnInvalidSubmit="OnInvalidSubmit">
 	<DataAnnotationsValidator />
 	@* <ValidationSummary /> *@
-	<div class="newApplicationContainer">
+	<div class="applicationContainer">
 		<div class="form-group">
 			<label for="company">Company name</label>
 			<InputText id="company"
@@ -58,13 +58,13 @@
 		<fieldset>
 			<legend>Attachments</legend>
 			<div class="form-group">
-				<label for="resume">Resume</label>
+				@* <label for="resume">Resume</label> *@
 				<UploadFile Dto="existingDto?.ResumePdf" Title="Upload Resume" OnFileUploaded="OnResumeUpload" OnFileRemoved="DeleteResume" />
 				<ValidationMessage For="@(() => appDto.ResumePdf)" />
 			</div>
 
 			<div class="form-group">
-				<label for="applicationPdf">Application</label>
+				@* <label for="applicationPdf">Application</label> *@
 				<UploadFile Dto="existingDto?.ApplicationPdf" Title="Upload Application" OnFileUploaded="OnApplicationUpload" OnFileRemoved="DeleteApplication" />
 				<ValidationMessage For="@(() => appDto.ApplicationPdf)" />
 			</div>
@@ -132,10 +132,7 @@
 		base.OnInitialized();
 	}
 
-	public void DeletePdf(PdfFileDto pdfFileDto)
-	{
 
-	}
 	private void OnResumeUpload((string Name, string ContentType, byte[] Data) file)
 	{
 		appDto.ResumePdf = new PdfFileDto()

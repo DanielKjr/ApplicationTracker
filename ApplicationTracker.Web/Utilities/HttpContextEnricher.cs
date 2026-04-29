@@ -24,9 +24,9 @@ namespace ApplicationTracker.Web.Utilities
 			var userName = httpContext.User?.FindFirst(ClaimTypes.Name)?.Value
 						   ?? httpContext.User?.FindFirst("name")?.Value
 						   ?? "Unknown";
-
-			var logProp = propertyFactory.CreateProperty("User", userName);
-			logEvent.AddOrUpdateProperty(logProp);
+			var nameProp = propertyFactory.CreateProperty("User", userName);
+		
+			logEvent.AddOrUpdateProperty(nameProp);
 		}
 	}
 

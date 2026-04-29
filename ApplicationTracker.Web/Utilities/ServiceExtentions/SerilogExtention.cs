@@ -17,7 +17,7 @@ namespace ApplicationTracker.Web.Utilities.ServiceExtentions
 
 				loggerconfig.MinimumLevel.ControlledBy(levelSwitch);
 
-				loggerconfig.Enrich.WithProperty("Application", "JobHuntLogger")
+				loggerconfig.Enrich.WithProperty("Application", "ApplicationTracker.Web")
 					.Enrich.WithHttpContextEnricher(httpContextAccessor)
 					.WriteTo.Seq(context.Configuration.GetValue<string>("Seq:Url")!, apiKey: context.Configuration.GetValue<string>("Seq:ApiKey"), controlLevelSwitch: levelSwitch);
 				loggerconfig.WriteTo.Console();

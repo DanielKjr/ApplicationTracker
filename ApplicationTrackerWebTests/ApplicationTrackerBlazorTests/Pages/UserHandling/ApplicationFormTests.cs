@@ -13,10 +13,10 @@ namespace ApplicationTrackerBlazorTests.Pages.UserHandling
 {
 	[TestFixture]
 	[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-	class AddOrEditApplicationTests : BunitContext
+	class ApplicationFormTests : BunitContext
 	{
 		[Test]
-		public void EditFormLoadsExistingApplication()
+		public void ApplicationForm_WithParams_LoadsExisting()
 		{
 			this.SetAuthorized();
 			var userId = Guid.NewGuid();
@@ -54,7 +54,7 @@ namespace ApplicationTrackerBlazorTests.Pages.UserHandling
 			JSInterop.SetupModule("./js/fileInputInteropModule.js");
 			var cut = Render<CascadingValue<IAuthenticationService>>(parameters => parameters
 			.Add(p => p.Value, authenticationService.Object)
-				.AddChildContent<AddOrEditApplication>(child =>
+				.AddChildContent<ApplicationForm>(child =>
 					child.Add(p => p.ApplicationId, applicationGuid)
 			));
 
@@ -66,55 +66,8 @@ namespace ApplicationTrackerBlazorTests.Pages.UserHandling
 			apiClientMock.Verify(x => x.ApplicationAsync(applicationGuid), Times.Once);
 
 		}
-
-
 		[Test]
-		public void NewFormLoadsDefaults()
-		{
-			this.SetAuthorized();
-			var apiClientMock = new Mock<ApplicationTrackerApiClient>("http://dummy", new HttpClient());
-			Services.AddSingleton(apiClientMock.Object);
-
-			var authenticationService = new Mock<IAuthenticationService>();
-			Services.AddTransient<IJSModuleLoader, JSModuleLoader>();
-			JSInterop.SetupModule("./js/fileInputInteropModule.js");
-
-			var cut = Render<AddOrEditApplication>();
-
-			var companyInput = cut.Find("input[id='company']");
-			Assert.That(string.IsNullOrEmpty(companyInput.GetAttribute("value")));
-			apiClientMock.Verify(x => x.ApplicationAsync(It.IsAny<Guid>()), Times.Never);
-		}
-
-		[Test]
-		public void CreateSubmitCallsNewAsync()
-		{
-			this.SetAuthorized();
-			var apiClientMock = new Mock<ApplicationTrackerApiClient>("http://dummy", new HttpClient());
-			apiClientMock.Setup(client => client.NewAsync(It.IsAny<NewJobApplicationDto>())).Returns(Task.CompletedTask);
-			Services.AddSingleton(apiClientMock.Object);
-
-			var authenticationService = new Mock<IAuthenticationService>();
-			authenticationService.Setup(service => service.GetUserIdAsync()).ReturnsAsync(Guid.NewGuid());
-			Services.AddSingleton<IAuthenticationService>(authenticationService.Object);
-			Services.AddTransient<IJSModuleLoader, JSModuleLoader>();
-			JSInterop.SetupModule("./js/fileInputInteropModule.js");
-
-			var cut = Render<AddOrEditApplication>();
-
-			var companyInput = cut.Find("input[id='company']");
-			companyInput.Change("My New Company");
-			var jobTitleInput = cut.Find("input[id='jobTitle']");
-			jobTitleInput.Change("Developer");
-
-			var submit = cut.Find("button[type='submit']");
-			submit.Click();
-
-			apiClientMock.Verify(x => x.NewAsync(It.Is<NewJobApplicationDto>(d => d.Company == "My New Company" && d.JobTitle == "Developer")), Times.Once);
-		}
-
-		[Test]
-		public void EditSubmitCallsUpdateAsync()
+		public void ApplicationForm_WithParams_CallsUpdate()
 		{
 			this.SetAuthorized();
 			var userId = Guid.NewGuid();
@@ -153,7 +106,7 @@ namespace ApplicationTrackerBlazorTests.Pages.UserHandling
 
 			var cut = Render<CascadingValue<IAuthenticationService>>(parameters => parameters
 				.Add(p => p.Value, authenticationService.Object)
-				.AddChildContent<AddOrEditApplication>(child => child.Add(p => p.ApplicationId, applicationGuid)));
+				.AddChildContent<ApplicationForm>(child => child.Add(p => p.ApplicationId, applicationGuid)));
 
 			var submit = cut.Find("button[type='submit']");
 			submit.Click();
@@ -162,7 +115,54 @@ namespace ApplicationTrackerBlazorTests.Pages.UserHandling
 		}
 
 		[Test]
-		public void ValidationPreventsSubmit_WhenRequiredMissing()
+		public void ApplicationForm_WithoutParams_LoadsDefaults()
+		{
+			this.SetAuthorized();
+			var apiClientMock = new Mock<ApplicationTrackerApiClient>("http://dummy", new HttpClient());
+			Services.AddSingleton(apiClientMock.Object);
+
+			var authenticationService = new Mock<IAuthenticationService>();
+			Services.AddTransient<IJSModuleLoader, JSModuleLoader>();
+			JSInterop.SetupModule("./js/fileInputInteropModule.js");
+
+			var cut = Render<ApplicationForm>();
+
+			var companyInput = cut.Find("input[id='company']");
+			Assert.That(string.IsNullOrEmpty(companyInput.GetAttribute("value")));
+			apiClientMock.Verify(x => x.ApplicationAsync(It.IsAny<Guid>()), Times.Never);
+		}
+
+		[Test]
+		public void ApplicationForm_WithoutParams_CallsCreateNew()
+		{
+			this.SetAuthorized();
+			var apiClientMock = new Mock<ApplicationTrackerApiClient>("http://dummy", new HttpClient());
+			apiClientMock.Setup(client => client.NewAsync(It.IsAny<NewJobApplicationDto>())).Returns(Task.CompletedTask);
+			Services.AddSingleton(apiClientMock.Object);
+
+			var authenticationService = new Mock<IAuthenticationService>();
+			authenticationService.Setup(service => service.GetUserIdAsync()).ReturnsAsync(Guid.NewGuid());
+			Services.AddSingleton<IAuthenticationService>(authenticationService.Object);
+			Services.AddTransient<IJSModuleLoader, JSModuleLoader>();
+			JSInterop.SetupModule("./js/fileInputInteropModule.js");
+
+			var cut = Render<ApplicationForm>();
+
+			var companyInput = cut.Find("input[id='company']");
+			companyInput.Change("My New Company");
+			var jobTitleInput = cut.Find("input[id='jobTitle']");
+			jobTitleInput.Change("Developer");
+
+			var submit = cut.Find("button[type='submit']");
+			submit.Click();
+
+			apiClientMock.Verify(x => x.NewAsync(It.Is<NewJobApplicationDto>(d => d.Company == "My New Company" && d.JobTitle == "Developer")), Times.Once);
+		}
+
+
+
+		[Test]
+		public void ApplicationForm_WithMissingRquired_PreventsSubmit()
 		{
 			this.SetAuthorized();
 			var apiClientMock = new Mock<ApplicationTrackerApiClient>("http://dummy", new HttpClient());
@@ -172,7 +172,7 @@ namespace ApplicationTrackerBlazorTests.Pages.UserHandling
 			Services.AddTransient<IJSModuleLoader, JSModuleLoader>();
 			JSInterop.SetupModule("./js/fileInputInteropModule.js");
 
-			var cut = Render<AddOrEditApplication>();
+			var cut = Render<ApplicationForm>();
 
 			
 			var submit = cut.Find("button[type='submit']");
