@@ -2,7 +2,7 @@ services:
 
    applicationtracker.api:
     container_name:
-       api
+       applicationtracker.api
     build:
       context: .
       dockerfile: ApplicationTracker.Api\Dockerfile
@@ -16,6 +16,8 @@ services:
      - apiinfo
 
    seqContainer:
+    container_name:
+        seqContainer
     image: datalust/seq:latest
     environment:
       - ACCEPT_EULA=Y

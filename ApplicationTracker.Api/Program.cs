@@ -4,11 +4,19 @@ using ApplicationTracker.Api.Utility;
 using ApplicationTracker.Api.Utility.ServiceExtentions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Identity.Web;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+
+
+// param only needed when using scalar
+builder.Services.AddOpenApi(options =>
+{
+	options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+});
+
 
 
 
@@ -51,8 +59,9 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
 	app.MapOpenApi();
-	app.UseSwagger();
-	app.UseSwaggerUI();
+	app.MapScalarApiReference();
+	//app.UseSwagger();
+	//app.UseSwaggerUI();
 }
 
 //app.UseHttpsRedirection();

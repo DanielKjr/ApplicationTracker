@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi;
 
-
 namespace ApplicationTracker.Api.Utility.ServiceExtentions
 {
 	public static class SwaggerExtension
@@ -31,14 +30,17 @@ namespace ApplicationTracker.Api.Utility.ServiceExtentions
 					Scheme = "bearer",
 					BearerFormat = "JWT"
 				});
-
+				
 				//Supposedly fixes the enforcement of no null values, even though the property is nullable
 			
 				c.UseAllOfToExtendReferenceSchemas();
 				c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
 				{
-					[new OpenApiSecuritySchemeReference("bearer", document)] = []
+					[new OpenApiSecuritySchemeReference("Bearer", document)] = []
 				});
+				
+			
+				
 				//TODO check that this stil works
 				//c.AddSecurityRequirement(new OpenApiSecurityRequirement
 				//{
